@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <Authors>Allan Debastiani</Authors>
+        <Description>Caching solution to use across projects</Description>
+        <Copyright>Allan Debastiani</Copyright>
+        <PackageProjectUrl>https://github.com/Allandeba/Deba.Caching</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Allandeba/Deba.Caching</RepositoryUrl>
+        <PackageReleaseNotes>Initial release of the project</PackageReleaseNotes>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <!-- <PackageIcon>icon.png</PackageIcon> -->
+        <PackageTags>Deba;Caching;Allandeba</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- <None Include="icon.png" Pack="True" PackagePath="icon.png" /> -->
+        <None Include="../README.md" Pack="True" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
+    </ItemGroup>
+
+</Project>
