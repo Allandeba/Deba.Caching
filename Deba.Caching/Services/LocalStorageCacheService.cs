@@ -25,8 +25,8 @@ internal class LocalStorageCacheService : ILocalStorageCacheService
     
     private async Task<CacheItem?> GetFromLocalStorageAsync(string key) =>
         await _localStorage.GetItemAsync<CacheItem>(key);
-    
-    private async Task SetCacheAsync<T>(string key, T value)
+
+    private async Task SetItemAsync<T>(string itemKey, T value, CacheOptions cacheOptions)
     {
         string jsonString = JsonSerializer.Serialize(value);
         byte[] byteArray = Encoding.UTF8.GetBytes(jsonString);
@@ -35,27 +35,56 @@ internal class LocalStorageCacheService : ILocalStorageCacheService
         var item = new CacheItem
         {
             Value = base64String,
-            ExpiresAt = _options.Expiration,
+            ExpiresAt = cacheOptions.Expiration,
         };
 
-        await _localStorage.SetItemAsync(key, item);
-    }
-
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback)
-    {
-        var cachedItem = await GetFromLocalStorageAsync(key);
-        if (cachedItem is not null && !IsExpired(cachedItem))
-            return DecodeObject<T>(cachedItem.Value);
-
-        var freshValue = await getItemCallback();
-        await SetCacheAsync(key, freshValue);
-        return freshValue;
+        await _localStorage.SetItemAsync(itemKey, item);
     }
 
     private T DecodeObject<T>(string base64)
     {
         var decodedString = Convert.FromBase64String(base64);
         return JsonSerializer.Deserialize<T>(decodedString)!;
+    }
+
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, CacheOptions cacheOptions)
+    {
+        var cachedItem = await GetItemAsync<T>(key);
+        if (cachedItem is not null)
+            return cachedItem;
+
+        var freshValue = await getItemCallback();
+        await SetItemAsync(key, freshValue, cacheOptions);
+        return freshValue;
+    }
+
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback)
+    {
+        var cachedItem = await GetItemAsync<T>(key);
+        if (cachedItem is not null)
+            return cachedItem;
+
+        var freshValue = await getItemCallback();
+        await SetItemAsync(key, freshValue);
+        return freshValue;
+    }
+
+    public async Task SetItemAsync<T>(string itemKey, T value) =>
+        await SetItemAsync(itemKey, value, _options);
+
+    public async Task<T?> GetItemAsync<T>(string itemKey)
+    {
+        var cachedItem = await GetFromLocalStorageAsync(itemKey);
+        if (cachedItem is not null)
+        {
+            if (!IsExpired(cachedItem))
+                if (cachedItem.Value is not null)
+                    return DecodeObject<T>(cachedItem.Value);
+
+            await RemoveItemAsync(itemKey);
+        }
+
+        return default;
     }
 
     public async Task RemoveItemAsync(string itemKey) =>
