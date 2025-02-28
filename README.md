@@ -11,6 +11,7 @@ Para adicionar minor ou major no package deve ser feito um commit com a seguinte
 
 - Major: `+semver: breaking` ou `+semver: major`
 - Minor: `+semver: feature` ou `+semver: minor`
+- Patch: `+semver: fix` ou `+semver: patch`
 
 ## Instalação
 
