@@ -2,16 +2,16 @@ namespace Deba.Caching.Models;
 
 public record CacheOptions
 {
-    private readonly TimeSpan _defaultExpiration = TimeSpan.FromDays(7);
+    private readonly DateTime _defaultExpiration = DateTime.UtcNow.AddDays(7);
 
-    public TimeSpan Expiration { get; private set; }
+    public DateTime Expiration { get; private set; }
 
     public CacheOptions()
     {
         Expiration = _defaultExpiration;
     }
     
-    public CacheOptions(TimeSpan expiration)
+    public CacheOptions(DateTime expiration)
     {
         Expiration = expiration;
     }

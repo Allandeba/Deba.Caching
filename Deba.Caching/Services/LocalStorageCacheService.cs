@@ -17,8 +17,11 @@ internal class LocalStorageCacheService : ILocalStorageCacheService
         _options = options ?? new();
     }
     
-    private bool IsExpired(CacheItem cacheItem) =>
-        DateOnly.FromDateTime(DateTime.UtcNow).CompareTo(cacheItem.ExpiresAt) > 0;
+    private bool IsExpired(CacheItem cacheItem)
+    {
+        if (cacheItem is null) return true;
+        return cacheItem.ExpiresAt.CompareTo(DateTime.UtcNow) < 0;
+    }
     
     private async Task<CacheItem?> GetFromLocalStorageAsync(string key) =>
         await _localStorage.GetItemAsync<CacheItem>(key);
