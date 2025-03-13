@@ -9,97 +9,59 @@ internal class MemoryCacheService : IMemoryCacheService
     private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
     private readonly CacheOptions _options;
     private readonly IMemoryCache _memoryCache;
-    
+
     public MemoryCacheService(IMemoryCache memoryCache, CacheOptions? options)
     {
         _memoryCache = memoryCache;
         _options = options ?? new();
     }
 
-    public T GetOrSet<T>(string key, Func<T> getItemCallback)
+    public T GetOrSet<T>(string key, Func<T> getItemCallback, CacheOptions? cacheOptions)
     {
-        if (_memoryCache.TryGetValue(key, out T? cachedItem)) return cachedItem!;
+        var cachedItem = Task.Run(() => GetItemAsync<T>(key)).Result;
+        if (cachedItem is not null) return cachedItem;
         
         cachedItem = getItemCallback();
 
-        SetCache(key, cachedItem);
+        Task.Run(() => SetItemAsync(key, cachedItem, cacheOptions)).Wait();
         return cachedItem;
     }
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync)
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync, CacheOptions? cacheOptions)
     {
-        if (_memoryCache.TryGetValue(key, out T? cachedItem)) return cachedItem!;
+        var cachedItem = await GetItemAsync<T>(key);
+        if (cachedItem is not null) return cachedItem;
 
         cachedItem = await getItemCallbackAsync();
 
-        await SetCacheAsync(key, cachedItem);
+        await SetItemAsync(key, cachedItem, cacheOptions);
         return cachedItem;
     }
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync, CacheOptions cacheOptions)
+    public async Task SetItemAsync<T>(string key, T item, CacheOptions? cacheOptions)
     {
-        if (_memoryCache.TryGetValue(key, out T? cachedItem)) return cachedItem!;
+        var opt = cacheOptions ?? _options;
 
-        cachedItem = await getItemCallbackAsync();
-
-        await SetCacheAsync(key, cachedItem, cacheOptions);
-        return cachedItem;
-    }
-
-    private async Task SetCacheAsync<T>(string key, T item)
-    {
         var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetSlidingExpiration(_options.Expiration.TimeOfDay)
-            .SetAbsoluteExpiration(_options.Expiration.TimeOfDay)
-            .SetPriority(CacheItemPriority.Normal)
-            .SetSize(1);
-
-        await Semaphore.WaitAsync();
-        try
-        {
-            _memoryCache.Set(key, item, cacheEntryOptions);
-        }
-        finally
-        {
-            Semaphore.Release();
-        }
-    }
-
-    private async Task SetCacheAsync<T>(string key, T item, CacheOptions cacheOptions)
-    {
-        var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetSlidingExpiration(cacheOptions.Expiration.TimeOfDay)
-            .SetAbsoluteExpiration(cacheOptions.Expiration.TimeOfDay)
-            .SetPriority(CacheItemPriority.Normal)
-            .SetSize(1);
-
-        await Semaphore.WaitAsync();
-        try
-        {
-            _memoryCache.Set(key, item, cacheEntryOptions);
-        }
-        finally
-        {
-            Semaphore.Release();
-        }
-    }
-
-    private void SetCache<T>(string key, T item)
-    {
-        var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetSlidingExpiration(_options.Expiration.TimeOfDay)
-            .SetAbsoluteExpiration(_options.Expiration.TimeOfDay)
+            .SetSlidingExpiration(opt.Expiration.TimeOfDay)
+            .SetAbsoluteExpiration(opt.Expiration.TimeOfDay)
             .SetPriority(CacheItemPriority.Normal)
             .SetSize(1);
 
         Semaphore.Wait();
         try
         {
-            _memoryCache.Set(key, item, cacheEntryOptions);
+            await Task.FromResult(_memoryCache.Set(key, item, cacheEntryOptions));
         }
         finally
         {
             Semaphore.Release();
         }
+    }
+
+    public async Task<T?> GetItemAsync<T>(string itemKey)
+    {
+        _memoryCache.TryGetValue(itemKey, out T? cachedItem);
+        return await Task.FromResult(cachedItem);
     }
 }
