@@ -16,7 +16,7 @@ internal class MemoryCacheService : IMemoryCacheService
         _options = options ?? new();
     }
 
-    public T GetOrSet<T>(string key, Func<T> getItemCallback, CacheOptions? cacheOptions)
+    public T GetOrSet<T>(string key, Func<T> getItemCallback, CacheOptions? cacheOptions = null)
     {
         var cachedItem = Task.Run(() => GetItemAsync<T>(key)).Result;
         if (cachedItem is not null) return cachedItem;
@@ -27,7 +27,7 @@ internal class MemoryCacheService : IMemoryCacheService
         return cachedItem;
     }
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync, CacheOptions? cacheOptions)
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync, CacheOptions? cacheOptions = null)
     {
         var cachedItem = await GetItemAsync<T>(key);
         if (cachedItem is not null) return cachedItem;
@@ -38,7 +38,7 @@ internal class MemoryCacheService : IMemoryCacheService
         return cachedItem;
     }
 
-    public async Task SetItemAsync<T>(string key, T item, CacheOptions? cacheOptions)
+    public async Task SetItemAsync<T>(string key, T item, CacheOptions? cacheOptions = null)
     {
         var opt = cacheOptions ?? _options;
 

@@ -32,7 +32,7 @@ internal class LocalStorageCacheService : ILocalStorageCacheService
         return JsonSerializer.Deserialize<T>(decodedString)!;
     }
     
-    public async Task SetItemAsync<T>(string itemKey, T value, CacheOptions? cacheOptions)
+    public async Task SetItemAsync<T>(string itemKey, T value, CacheOptions? cacheOptions = null)
     {
         var opt = cacheOptions ?? _options;
 
@@ -49,7 +49,7 @@ internal class LocalStorageCacheService : ILocalStorageCacheService
         await _localStorage.SetItemAsync(itemKey, item);
     }
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, CacheOptions? cacheOptions)
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, CacheOptions? cacheOptions = null)
     {
         var cachedItem = await GetItemAsync<T>(key);
         if (cachedItem is not null)
