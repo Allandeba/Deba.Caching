@@ -43,8 +43,7 @@ internal class MemoryCacheService : IMemoryCacheService
         var opt = cacheOptions ?? _options;
 
         var cacheEntryOptions = new MemoryCacheEntryOptions()
-            .SetSlidingExpiration(opt.Expiration.TimeOfDay)
-            .SetAbsoluteExpiration(opt.Expiration.TimeOfDay)
+            .SetAbsoluteExpiration(opt.Expiration)
             .SetPriority(CacheItemPriority.Normal)
             .SetSize(1);
 
