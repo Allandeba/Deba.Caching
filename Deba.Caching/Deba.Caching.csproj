@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsPackable>true</IsPackable>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -27,5 +28,15 @@
       <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
       <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
     </ItemGroup>
+        
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>C://NugetLocal</PackageOutputPath>
+    <DebugType>embedded</DebugType>
+    <MajorVersion>0</MajorVersion>
+    <MinorVersion>0</MinorVersion>
+    <VersionSuffix>0</VersionSuffix>
+    <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(VersionSuffix)</Version>
+  </PropertyGroup>
 
 </Project>
