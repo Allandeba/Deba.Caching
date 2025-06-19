@@ -35,6 +35,7 @@
     <DebugType>embedded</DebugType>
     <MajorVersion>0</MajorVersion>
     <MinorVersion>0</MinorVersion>
+    <PatchVersion>0</PatchVersion>
     <VersionSuffix>0</VersionSuffix>
     <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(VersionSuffix)</Version>
   </PropertyGroup>
