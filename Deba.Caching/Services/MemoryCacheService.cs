@@ -16,11 +16,17 @@ internal class MemoryCacheService : IMemoryCacheService
         _options = options ?? new();
     }
 
+    private async Task<(bool Found, T? Value)> GetCachedItemAsync<T>(string itemKey)
+    {
+        var hasItem = _memoryCache.TryGetValue(itemKey, out T? cachedItem);
+        return await Task.FromResult((hasItem, cachedItem));
+    }
+
     public T GetOrSet<T>(string key, Func<T> getItemCallback, CacheOptions? cacheOptions = null)
     {
-        var cachedItem = Task.Run(() => GetItemAsync<T>(key)).Result;
-        if (cachedItem is not null) return cachedItem;
-        
+        var (found, cachedItem) = Task.Run(() => GetCachedItemAsync<T>(key)).Result;
+        if (found && cachedItem is not null) return cachedItem;
+
         cachedItem = getItemCallback();
 
         Task.Run(() => SetItemAsync(key, cachedItem, cacheOptions)).Wait();
@@ -29,8 +35,8 @@ internal class MemoryCacheService : IMemoryCacheService
 
     public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallbackAsync, CacheOptions? cacheOptions = null)
     {
-        var cachedItem = await GetItemAsync<T>(key);
-        if (cachedItem is not null) return cachedItem;
+        var (found, cachedItem) = await GetCachedItemAsync<T>(key);
+        if (found && cachedItem is not null) return cachedItem;
 
         cachedItem = await getItemCallbackAsync();
 
@@ -60,7 +66,7 @@ internal class MemoryCacheService : IMemoryCacheService
 
     public async Task<T?> GetItemAsync<T>(string itemKey)
     {
-        _memoryCache.TryGetValue(itemKey, out T? cachedItem);
-        return await Task.FromResult(cachedItem);
+        var (found, cachedItem) = await GetCachedItemAsync<T>(itemKey);
+        return cachedItem;
     }
 }
