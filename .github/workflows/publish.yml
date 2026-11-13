@@ -1,17 +1,27 @@
-name: Publish package to Github
+name: Validate and publish package
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated package to the configured NuGet feed
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   CONFIGURATION: 'Release'
 
 jobs:
-  build-test-pack-push:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v3.1.11
@@ -31,7 +42,7 @@ jobs:
         uses: gittools/actions/gitversion/execute@v3.1.11
         with:
           useConfigFile: true
-          updateAssemblyInfo: true
+          updateAssemblyInfo: false
           
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -39,16 +50,54 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore Deba.Caching.sln
 
       - name: Build
-        run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+        env:
+          PACKAGE_VERSION: ${{ steps.gitversion.outputs.SemVer }}
+        run: dotnet build Deba.Caching.sln --configuration ${{ env.CONFIGURATION }} --no-restore -p:Version="$PACKAGE_VERSION" -p:GeneratePackageOnBuild=false
 
-      - name: Test
-        run: dotnet test --configuration ${{ env.CONFIGURATION }} --no-build
+      - name: Test .NET 10 contracts
+        run: dotnet test Deba.Caching.sln --configuration "$CONFIGURATION" --no-build --no-restore --logger "trx;LogFileName=contracts-net10.trx" --results-directory artifacts/test-results -p:GeneratePackageOnBuild=false
 
       - name: Generate package
-        run: dotnet pack --configuration ${{ env.CONFIGURATION }} --no-build --output ./out /p:Version=${{ steps.gitversion.outputs.MajorMinorPatch }}
+        env:
+          PACKAGE_VERSION: ${{ steps.gitversion.outputs.SemVer }}
+        run: dotnet pack Deba.Caching/Deba.Caching.csproj --configuration ${{ env.CONFIGURATION }} --no-build --no-restore --output artifacts/packages -p:Version="$PACKAGE_VERSION" -p:PackageVersion="$PACKAGE_VERSION" -p:GeneratePackageOnBuild=false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/test-results/*.trx
+          if-no-files-found: warn
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: artifacts/packages/*.nupkg
+          if-no-files-found: error
+
+  publish:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download validated package
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: artifacts/packages
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Push to NuGet
-        run: dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ vars.NUGET_SERVER }} --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_SERVER: ${{ vars.NUGET_SERVER }}
+        run: dotnet nuget push artifacts/packages/*.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate
