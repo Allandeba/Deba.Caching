@@ -84,6 +84,10 @@ jobs:
     needs: validate
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true))
     runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Download validated package
         uses: actions/download-artifact@v4
@@ -96,8 +100,14 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: allandeba
+
       - name: Push to NuGet
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           NUGET_SERVER: ${{ vars.NUGET_SERVER }}
         run: dotnet nuget push artifacts/packages/*.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate
