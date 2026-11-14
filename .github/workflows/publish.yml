@@ -54,7 +54,7 @@ jobs:
 
       - name: Build
         env:
-          PACKAGE_VERSION: ${{ steps.gitversion.outputs.SemVer }}
+          PACKAGE_VERSION: ${{ steps.gitversion.outputs.majorMinorPatch }}
         run: dotnet build Deba.Caching.sln --configuration ${{ env.CONFIGURATION }} --no-restore -p:Version="$PACKAGE_VERSION" -p:GeneratePackageOnBuild=false
 
       - name: Test .NET 10 contracts
@@ -62,7 +62,7 @@ jobs:
 
       - name: Generate package
         env:
-          PACKAGE_VERSION: ${{ steps.gitversion.outputs.SemVer }}
+          PACKAGE_VERSION: ${{ steps.gitversion.outputs.majorMinorPatch }}
         run: dotnet pack Deba.Caching/Deba.Caching.csproj --configuration ${{ env.CONFIGURATION }} --no-build --no-restore --output artifacts/packages -p:Version="$PACKAGE_VERSION" -p:PackageVersion="$PACKAGE_VERSION" -p:GeneratePackageOnBuild=false
 
       - name: Upload test results
